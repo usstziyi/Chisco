@@ -113,6 +113,17 @@ if not os.path.exists(os.path.join(output_folder,'fif')):
 if not os.path.exists(os.path.join(output_folder,'log')):
     os.makedirs(os.path.join(output_folder,'log'))
 
+"""
+├── fif/                    ← ✅ 真在写：连续 Raw（-raw.fif）
+├── fif-epo/                ← ❌ 预建但空（设计给 Epochs）
+├── pkl/                    ← ❌ 预建但空（设计给 pkl）
+├── log/                    ← ❌ 预建但空（从未写入）
+├── fif-epo_rej/            ← ✅ L258 运行时自建：剔坏段后（_rej-epo.fif）
+├── fif-epo_rej_ica/        ← ✅ 再经 ICA 后（_rej_ica-epo.fif）
+├── pkl_rej/                ← ✅ 对应 pkl 版
+└── pkl_rej_ica/            ← ✅ 对应 pkl 版
+"""
+
 
 def process_edf_file(edf_file, montage_file, useless_channels, output_folder, word_list_folder):
 
@@ -148,7 +159,8 @@ def process_edf_file(edf_file, montage_file, useless_channels, output_folder, wo
     else:
         print("Not running pyprep")
         raw_new = raw.copy()
-    
+
+    # 坏道是被插值了，但仍留在`bads` 列表里
     print("Still bad channels: ", raw_new.info['bads'])
 
     # High-pass filter
@@ -156,6 +168,7 @@ def process_edf_file(edf_file, montage_file, useless_channels, output_folder, wo
 
     if STEP:
         # save unsegmented processed data
+        # 已插值坏道 + 已做鲁棒平均参考 + 已陷波 + 已高通，但还没切 epoch 的整段信号。
         raw_new.save(os.path.join(output_folder,'fif' ,f"{os.path.basename(edf_file).replace('.edf', '')}_{subject_id}_{method_str}-raw.fif"), overwrite=True)
 
     # event detection
@@ -193,16 +206,20 @@ def process_edf_file(edf_file, montage_file, useless_channels, output_folder, wo
     epochs_i = mne.Epochs(raw_new, events, tmin=5, tmax=8.3, baseline=None, preload=True, metadata=metadata)
 
     if AUTO_REJECT:
+        # 坏段（整个 trial）的自动剔除
         from autoreject import AutoReject
         ar = AutoReject()
         epochs_clean_r, reject_log_r = ar.fit_transform(epochs_r, return_log=True)
         epochs_clean_i, reject_log_i = ar.fit_transform(epochs_i, return_log=True)
+        print("read 丢弃段数:", reject_log_r.bad_epochs.sum())
+        print("imagine 丢弃段数:", reject_log_i.bad_epochs.sum())
     else:
         print("Not running autoreject")
         epochs_clean_r = epochs_r
         epochs_clean_i = epochs_i
     
     if STEP:
+        # 已剔除坏段、但还没做 ICA
         # Save the data after bad segment rejection as FIF files
         for (epoch, type_str) in [(epochs_clean_r, 'read'), (epochs_clean_i, 'imagine')]:
             save_epochs_to_fif(epoch, edf_file, type_str, '_rej')
