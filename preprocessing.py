@@ -148,7 +148,7 @@ def process_edf_file(edf_file, montage_file, useless_channels, output_folder, wo
         prep_params = {
             "ref_chs": "eeg",
             "reref_chs": "eeg",
-            "line_freqs": np.arange(50, sample_rate / 2, 50),
+            "line_freqs": np.arange(50, sample_rate / 2, 50), # 50,100,150,200Hz
         }
 
         prep = PrepPipeline(raw, prep_params, custom_montage, ransac=RANSAC)
