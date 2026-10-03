@@ -78,7 +78,7 @@ def preprocess_data(raw):
         return eyeblink_component
     else:
         print("no eyeblink IC detected")
-        return 0
+        return None
 
 def detect_blinks(eyeblink_component, sfreq, threshold=1.0):
     peaks, _ = find_peaks(eyeblink_component, height=threshold, distance=int(0.5 * sfreq), prominence= 0.5, width=int(0.1 * sfreq))
