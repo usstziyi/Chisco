@@ -63,7 +63,7 @@ args = parser.parse_args()
 print(args)
 
 try:
-    root_folder = '/' # default to “/”, you can change it to the path of the root folder of the dataset
+    root_folder = os.path.dirname(os.path.abspath(__file__)) # the folder containing this script
     word_list_folder = os.path.join(root_folder, 'Chisco/textdataset')
     montage_file = 'montage.csv'
     IC_NUM = 30
@@ -160,7 +160,7 @@ def process_edf_file(edf_file, montage_file, useless_channels, output_folder, wo
         print("Not running pyprep")
         raw_new = raw.copy()
 
-    # 坏道是被插值了，但仍留在`bads` 列表里
+    # 如果打印结果为空，说明所有坏道都被插值修复了
     print("Still bad channels: ", raw_new.info['bads'])
 
     # High-pass filter
@@ -192,7 +192,7 @@ def process_edf_file(edf_file, montage_file, useless_channels, output_folder, wo
     csv_file = os.path.join(word_list_folder, f"split_data_{run_number}.xlsx")
     words_df = pd.read_excel(csv_file)
     words_list = words_df.iloc[:, 0].tolist() 
-    print('Text list read, total:', len(words_list), "items")
+    print('Text list read, total:', len(words_list), "items") # 200
 
     n_events = len(events)
     # If the word list is longer than the number of events, truncate it
